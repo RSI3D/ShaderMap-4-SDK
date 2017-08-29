@@ -1,11 +1,11 @@
-SHADERMAP 3 SDK
+SHADERMAP 4 SDK
 http://shadermap.com/sdk
 
 -----------
 
 ABOUT THIS SDK
 
-This ShaderMap 4 SDK is for use with version 3 of ShaderMap. It is compatible 
+This ShaderMap 4 SDK is for use with version 4 of ShaderMap. It is compatible 
 with 4.0.1 and up. 
 
 This SDK comes with the following APIs for developing plugins and materials for 
