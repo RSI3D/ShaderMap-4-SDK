@@ -164,16 +164,17 @@ struct gp_node_face_s
 {
 	unsigned int								a, b, c;				// Indices of triangle vertices
 	unsigned int								subset_index;			// The zero based index of this triangle's subset
-
+	unsigned int								color;					// Color value set by RGB(r, g, b);
 
 	// c()
 	gp_node_face_s::gp_node_face_s(void)
 	{	a = b = c = subset_index = 0;
+		color = RGB(191, 191, 191);
 	}
 
 	// c(...)
-	gp_node_face_s::gp_node_face_s(unsigned int c_a, unsigned int c_b, unsigned int c_c, unsigned int subset)
-	{	a = c_a; b = c_b; c = c_c; subset_index = subset;
+	gp_node_face_s::gp_node_face_s(unsigned int c_a, unsigned int c_b, unsigned int c_c, unsigned int subset, unsigned int col)
+	{	a = c_a; b = c_b; c = c_c; subset_index = subset; color = col;
 	}
 };
 
@@ -225,7 +226,7 @@ gp_get_trans_string_type						gp_get_trans_string = 0;
 // Set the file format info by passing the name of the file format (Example: "Wavefront OBJ"), a list of extensions (Ex. "obj").
 // This should be called in "on_initialize()" between "gp_begin_initialize()" and "gp_end_initialize()"
 typedef void									(*gp_set_file_info_type)(const wchar_t* /*name*/, const wchar_t** /*extension_array*/, unsigned int /*extension_count*/);
-static gp_set_file_info_type					gp_set_file_info = 0;
+gp_set_file_info_type							gp_set_file_info = 0;
 
 
 // **
@@ -234,18 +235,22 @@ static gp_set_file_info_type					gp_set_file_info = 0;
 // Get the geometry type expected from ShaderMap. This can be of type RENDER or type NODE. 
 // It is important that the correct format is used or the geometry will not work as expected.
 typedef unsigned int							(*gp_get_geometry_type_type)(void);
-static gp_get_geometry_type_type				gp_get_geometry_type = 0;
+gp_get_geometry_type_type						gp_get_geometry_type = 0;
 
 // Create the loaded geometry for RENDERING by sending it to ShaderMap - Ensure "gp_get_geo_type()" == GP_GEOMETRY_TYPE_RENDER
 // The triangle_array parameter must be sorted from lowest to highest subsets
 // The parameter additional_uv_arrays is an array of float arrays - 2 floats per vertex - can be 0 if no additional uv channels
 typedef BOOL									(*gp_create_render_geometry_type)(gp_render_vertex_s* /*vertex_array*/, unsigned int /*vertex_count*/, gp_render_face_s* /*triangle_array*/, unsigned int /*triangle_count*/, unsigned int /*subset_count*/, BOOL /*is_create_normals*/, float** /*additional_uv_arrays*/, unsigned int /*additional_uv_array_count*/);
-static gp_create_render_geometry_type			gp_create_render_geometry = 0;
+gp_create_render_geometry_type					gp_create_render_geometry = 0;
 
 // Create the loaded geometry for NODES by sending it to ShaderMap - Ensure "gp_get_geo_type()" == GP_GEOMETRY_TYPE_NODE
 // The triangle_array parameter must be sorted from lowest to highest subsets - Geometry should be optimized with no duplicate vertices
 typedef BOOL									(*gp_create_node_geometry_type)(gp_node_vertex_s* /*vertex_array*/, unsigned int /*vertex_count*/, gp_node_face_s* /*triangle_array*/, unsigned int /*triangle_count*/, const gp_node_uv_data_s* /*uv_data_pointer*/, unsigned int /*subset_count*/, BOOL /*is_create_normals*/);
-static gp_create_node_geometry_type				gp_create_node_geometry = 0;
+gp_create_node_geometry_type					gp_create_node_geometry = 0;
+
+// Define a material id by passing a list of subsets. This function can be called multiple times. 
+typedef void									(*gp_define_node_material_id_type)(unsigned int /*subset_count*/, const unsigned int* /*subset_array*/);
+gp_define_node_material_id_type					gp_define_node_material_id = 0;
 
 
 // **
@@ -254,7 +259,7 @@ static gp_create_node_geometry_type				gp_create_node_geometry = 0;
 // Log a filter error to the ShaderMap log file located: "C:\Users\<USERNAME>\AppData\Roaming\SM3\log".
 // Use the "LOG_ERROR_MSG()" macro to simplify calling this function.
 typedef void									(*gp_log_plugin_error_type)(unsigned int /*plugin_index*/, const wchar_t* /*error_message*/, const wchar_t* /*function*/, const wchar_t* /*source_filepath*/, int /*source_line_number*/);
-static gp_log_plugin_error_type					gp_log_plugin_error = 0;
+gp_log_plugin_error_type						gp_log_plugin_error = 0;
 
 
 // ----------------------------------------------------------------
@@ -309,7 +314,8 @@ extern "C" {
 		gp_create_render_geometry				= (gp_create_render_geometry_type)function_pointer_array[201];	
 		gp_create_node_geometry					= (gp_create_node_geometry_type)function_pointer_array[202];
 		gp_log_plugin_error						= (gp_log_plugin_error_type)function_pointer_array[203];	
-		/*Elements 204 - 299 are reserved for future use*/
+		gp_define_node_material_id				= (gp_define_node_material_id_type)function_pointer_array[204];
+		/*Elements 205 - 299 are reserved for future use*/
 
 		return on_initialize();
 	}
