@@ -21,7 +21,7 @@
 	The ShaderMap SDK is released under The MIT License (MIT)
 	http://opensource.org/licenses/MIT
 
-	Copyright (c) 2017 Rendering Systems Inc.
+	Copyright (c) 2018 Rendering Systems Inc.
 	
 	Permission is hereby granted, free of charge, to any person 
 	obtaining a copy of this software and associated documentation 

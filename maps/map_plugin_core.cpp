@@ -24,7 +24,7 @@
 	The ShaderMap SDK is released under The MIT License (MIT)
 	http://opensource.org/licenses/MIT
 
-	Copyright (c) 2017 Rendering Systems Inc.
+	Copyright (c) 2018 Rendering Systems Inc.
 	
 	Permission is hereby granted, free of charge, to any person 
 	obtaining a copy of this software and associated documentation 
@@ -514,23 +514,27 @@ static mp_get_input_model_subset_list_type		mp_get_input_model_subset_list = 0;
 
 
 // **
-// Functions for caching input data.
+// Functions for caching node data.
 
-// Return if input caching is enabled.
-typedef BOOL									(*mp_is_input_cache_enabled_type)(void);
-static mp_is_input_cache_enabled_type			mp_is_input_cache_enabled = 0;
+// Return if caching is enabled in the ShaderMap options.
+typedef BOOL									(*mp_is_cache_enabled_type)(void);
+static mp_is_cache_enabled_type					mp_is_cache_enabled = 0;
 
-// Register plugin-stored input data to the cache registry. Data should be input specific and use a unique name to identify it.
-// Registering data to the cache allows the read-only data to be shared accross map plugins that share a specific input.
-// Function returns FALSE if either cache is disabled, input_id is invalid, or cache_name is already in use.
-// Use "mp_get_input_id()" for input_id.
-typedef BOOL									(*mp_register_input_cache_type)(unsigned int /*input_id*/, unsigned int /*cache_type*/, const wchar_t* /*cache_name*/, const void* /*data_pointer*/);
-static mp_register_input_cache_type				mp_register_input_cache = 0;
+// Register data to the node cache registry. Data should be input specific and use a unique name to identify it.
+// Registering data to the cache allows the read-only data to be shared accross map plugins if they have access to the node id (input id).
+// Data should be stored locally. It is not copied into the cache. The cache only stores a pointer to the data. 
+// Be sure to delete data and update indices as needed in the plugin callbacks: on_node_cache_clear() and on_node_cache_clear_single().
+// Function returns FALSE if either cache is disable, node_id is invalid, cache_type is invalid, or cache_name is already in use.
+// Use mp_get_input_id() for node_id of an input, or use map_id for node_id of current map.
+// data_size should be in bytes
+typedef BOOL									(*mp_register_node_cache_type)(unsigned int /*node_id*/, unsigned int /*cache_type*/, const wchar_t* /*cache_name*/, const void* /*data_pointer*/, unsigned long long /*data_size*/);
+static mp_register_node_cache_type				mp_register_node_cache = 0;
 
-// Returns a pointer to input specific cached data - returns 0 if input_id is invaid or cache_name was not found.
+// Return a pointer to specific cached data that was stored with mp_register_node_cache.
+// Returns 0 if node_id is invaid or cache_name was not found.
 // Use this to check if data is already cached before registering it.
-typedef const void*								(*mp_get_input_cache_type)(unsigned int /*input_id*/, const wchar_t* /*cache_name*/);
-static mp_get_input_cache_type					mp_get_input_cache = 0;
+typedef const void*								(*mp_get_node_cache_type)(unsigned int /*node_id*/, const wchar_t* /*cache_name*/);
+static mp_get_node_cache_type					mp_get_node_cache = 0;
 
 
 // **
@@ -734,12 +738,12 @@ void											on_input_id_change(unsigned int above_input_id);
 
 // Called when either a node has been removed from the project or a part of it has changed.
 // The type of clear is defined as type CACHE_TYPE_ANY, _MAP, _MODEL, or _CAGE. 
-// Cached data with input_id and cache type should be released from memory.
-void											on_input_cache_clear(unsigned int input_id, unsigned int type);
+// Cached data with node_id and cache type should be released from memory.
+void											on_node_cache_clear(unsigned int node_id, unsigned int type);
 
 // Called when ShaderMap is deleting old cache entries. 
 // Check local cache for matching data pointer, if found then free and remove that entry.
-void											on_input_cache_clear_single(const void* data_pointer);
+void											on_node_cache_clear_single(const void* data_pointer);
 
 
 // ------------------------------------------------------------------
@@ -749,7 +753,7 @@ void											on_input_cache_clear_single(const void* data_pointer);
 // These are functions called by ShaderMap. 
 // "plugin_initialize()" sets the API function pointers then calls "on_initialize()".
 // "plugin_process()", "plugin_shutdown()", and "plugin_custom_0()" each call the user defined "on_process()", "on_shutdown()", and "on_arrange_load_data()" functions.
-// "plugin_custom_1()", "plugin_custom_2()", and "plugin_custom_3()" each call the user defined "on_input_id_change()", "on_input_cache_clear()", and "on_input_cache_clear_single()" functions.
+// "plugin_custom_1()", "plugin_custom_2()", and "plugin_custom_3()" each call the user defined "on_input_id_change()", "on_input_cache_clear()", and "on_node_cache_clear_single()" functions.
 
 #define DLL_EXPORT								__declspec(dllexport)
 
@@ -809,9 +813,9 @@ extern "C" {
 		mp_get_input_pixel_array				= (mp_get_input_pixel_array_type)function_pointer_array[507];
 		mp_get_input_model						= (mp_get_input_model_type)function_pointer_array[508];
 		mp_get_input_model_subset_list			= (mp_get_input_model_subset_list_type)function_pointer_array[509];
-		mp_is_input_cache_enabled				= (mp_is_input_cache_enabled_type)function_pointer_array[510];
-		mp_register_input_cache					= (mp_register_input_cache_type)function_pointer_array[511];
-		mp_get_input_cache						= (mp_get_input_cache_type)function_pointer_array[512];
+		mp_is_cache_enabled						= (mp_is_cache_enabled_type)function_pointer_array[510];
+		mp_register_node_cache					= (mp_register_node_cache_type)function_pointer_array[511];
+		mp_get_node_cache						= (mp_get_node_cache_type)function_pointer_array[512];
 		/*Elements 513 - 599 are reserved for future use*/
 
 		mp_get_property_pagelist				= (mp_get_property_pagelist_type)function_pointer_array[600];
@@ -876,13 +880,13 @@ extern "C" {
 
 	// Input cache clear
 	DLL_EXPORT BOOL plugin_custom_2(void* param_0, void* param_1, void* param_2)
-	{	on_input_cache_clear(*(unsigned int*)param_0, *(unsigned int*)param_1);
+	{	on_node_cache_clear(*(unsigned int*)param_0, *(unsigned int*)param_1);
 		return TRUE;
 	}
 
 	// Input cache clear single
 	DLL_EXPORT BOOL plugin_custom_3(void* param_0, void* param_1, void* param_2)
-	{	on_input_cache_clear_single((const void*)param_0);
+	{	on_node_cache_clear_single((const void*)param_0);
 		return TRUE;
 	}
 }
