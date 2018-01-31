@@ -252,6 +252,10 @@ gp_create_node_geometry_type					gp_create_node_geometry = 0;
 typedef void									(*gp_define_node_material_id_type)(unsigned int /*subset_count*/, const unsigned int* /*subset_array*/);
 gp_define_node_material_id_type					gp_define_node_material_id = 0;
 
+// Return if the options want the materials colored from imported file. If not SM official plugins use an internal palette to color materials.
+typedef BOOL									(*gp_is_option_material_color_from_file_type)(void);
+gp_is_option_material_color_from_file_type		gp_is_option_material_color_from_file = 0;
+
 
 // **
 // Utility functions using during processing in "on_process()".
@@ -315,7 +319,8 @@ extern "C" {
 		gp_create_node_geometry					= (gp_create_node_geometry_type)function_pointer_array[202];
 		gp_log_plugin_error						= (gp_log_plugin_error_type)function_pointer_array[203];	
 		gp_define_node_material_id				= (gp_define_node_material_id_type)function_pointer_array[204];
-		/*Elements 205 - 299 are reserved for future use*/
+		gp_is_option_material_color_from_file	= (gp_is_option_material_color_from_file_type)function_pointer_array[205];
+		/*Elements 206 - 299 are reserved for future use*/
 
 		return on_initialize();
 	}
